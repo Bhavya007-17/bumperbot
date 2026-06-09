@@ -1,0 +1,19 @@
+# ROS 2 / colcon
+build/
+install/
+log/
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+
+# Windows "downloaded file" alternate-data-stream junk
+*:Zone.Identifier
+*Zone.Identifier
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store

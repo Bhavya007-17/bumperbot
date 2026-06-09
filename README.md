@@ -74,7 +74,7 @@ In development / learning workspace. Description, simulation launch, example nod
 
 ## License
 
-The `bumperbot_description` and `bumperbot_py_examples` packages declare **Apache-2.0** in their `package.xml`. TODO: add a top-level `LICENSE` file and set licenses for the remaining packages.
+The `bumperbot_description` and `bumperbot_py_examples` packages declare **Apache-2.0** in their `package.xml`. A top-level **MIT** `LICENSE` has been added; individual packages may still declare their own (e.g. Apache-2.0).
 
 ## Contact
 

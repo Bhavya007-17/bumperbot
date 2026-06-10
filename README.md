@@ -13,9 +13,13 @@ Here is a demonstration of Bumperbot performing mapping and navigation, visualiz
 
 <!-- Drag and drop your video file here in the GitHub editor to auto-embed the video player -->
 <video src="demo.mp4" controls="controls" style="max-width: 100%;">
-  Your browser does not support the video tag.
+ 
 
-https://github.com/user-attachments/assets/f9ae03df-c8de-4c4a-b662-8b88ab527883
+https://github.com/user-attachments/assets/c90b7f2a-c09c-465f-ba6f-37dab7794f7a
+
+
+
+
 
 
 </video>

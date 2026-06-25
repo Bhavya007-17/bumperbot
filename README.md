@@ -3,12 +3,7 @@
 > A production-style ROS 2 micromouse stack where the **same flood-fill brain** drives the [mackorone/mms](https://github.com/mackorone/mms) GUI and a differential-drive robot in **Gazebo Harmonic**, cell by cell, in real time.
 
 <p align="center">
-  <a href="media/micromouse_demo.mp4">
-    <video src="media/micromouse_demo.mp4" width="820" controls playsinline poster="media/mms_solved.png">
-      <em>Your browser does not support embedded video.</em>
-      <a href="media/micromouse_demo.mp4">Download the full demo (MP4)</a>
-    </video>
-  </a>
+  <img src="media/micromouse_demo.gif" alt="Full micromouse demo — mms flood-fill and Gazebo robot solving a 16×16 maze" width="820"/>
   <br/>
   <sub><b>Full run</b> — mms flood-fill distances, gradient walk to the center 2×2, and the Gazebo robot mirroring each cell move.</sub>
 </p>

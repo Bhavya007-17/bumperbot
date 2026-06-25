@@ -1,0 +1,127 @@
+<?xml version="1.0"?>
+<robot name="micromouse" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- A small differential-drive robot sized to fit a 0.30 m maze cell.
+       wheel_radius=0.04, wheel_separation=0.13. Spawn at z=0.04 so the
+       wheels rest on the ground. -->
+
+  <link name="base_link">
+    <visual>
+      <geometry><box size="0.12 0.09 0.04"/></geometry>
+      <material name="body"><color rgba="0.10 0.45 0.85 1"/></material>
+    </visual>
+    <collision>
+      <geometry><box size="0.12 0.09 0.04"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.6"/>
+      <inertia ixx="0.000485" ixy="0" ixz="0"
+               iyy="0.0008" iyz="0" izz="0.001125"/>
+    </inertial>
+  </link>
+
+  <!-- left wheel (+y) -->
+  <link name="left_wheel">
+    <visual>
+      <origin rpy="1.5708 0 0" xyz="0 0 0"/>
+      <geometry><cylinder length="0.02" radius="0.04"/></geometry>
+      <material name="wheel"><color rgba="0.1 0.1 0.1 1"/></material>
+    </visual>
+    <collision>
+      <origin rpy="1.5708 0 0" xyz="0 0 0"/>
+      <geometry><cylinder length="0.02" radius="0.04"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="0.000022" ixy="0" ixz="0"
+               iyy="0.00004" iyz="0" izz="0.000022"/>
+    </inertial>
+  </link>
+  <joint name="left_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="left_wheel"/>
+    <origin xyz="0 0.065 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <!-- right wheel (-y) -->
+  <link name="right_wheel">
+    <visual>
+      <origin rpy="1.5708 0 0" xyz="0 0 0"/>
+      <geometry><cylinder length="0.02" radius="0.04"/></geometry>
+      <material name="wheel"><color rgba="0.1 0.1 0.1 1"/></material>
+    </visual>
+    <collision>
+      <origin rpy="1.5708 0 0" xyz="0 0 0"/>
+      <geometry><cylinder length="0.02" radius="0.04"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="0.000022" ixy="0" ixz="0"
+               iyy="0.00004" iyz="0" izz="0.000022"/>
+    </inertial>
+  </link>
+  <joint name="right_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="right_wheel"/>
+    <origin xyz="0 -0.065 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <!-- front caster (frictionless ball) -->
+  <link name="caster">
+    <visual>
+      <geometry><sphere radius="0.02"/></geometry>
+      <material name="caster"><color rgba="0.3 0.3 0.3 1"/></material>
+    </visual>
+    <collision>
+      <geometry><sphere radius="0.02"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.02"/>
+      <inertia ixx="0.000003" ixy="0" ixz="0"
+               iyy="0.000003" iyz="0" izz="0.000003"/>
+    </inertial>
+  </link>
+  <joint name="caster_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="caster"/>
+    <origin xyz="0.045 0 -0.02" rpy="0 0 0"/>
+  </joint>
+
+  <!-- gz friction: grippy wheels, slippery caster -->
+  <gazebo reference="left_wheel">
+    <mu1>1.0</mu1><mu2>1.0</mu2>
+  </gazebo>
+  <gazebo reference="right_wheel">
+    <mu1>1.0</mu1><mu2>1.0</mu2>
+  </gazebo>
+  <gazebo reference="caster">
+    <mu1>0.0</mu1><mu2>0.0</mu2>
+  </gazebo>
+
+  <!-- gz systems -->
+  <gazebo>
+    <plugin filename="gz-sim-diff-drive-system"
+            name="gz::sim::systems::DiffDrive">
+      <left_joint>left_wheel_joint</left_joint>
+      <right_joint>right_wheel_joint</right_joint>
+      <wheel_separation>0.13</wheel_separation>
+      <wheel_radius>0.04</wheel_radius>
+      <odom_publish_frequency>50</odom_publish_frequency>
+      <topic>/cmd_vel</topic>
+      <odom_topic>/odom</odom_topic>
+      <tf_topic>/tf</tf_topic>
+      <frame_id>odom</frame_id>
+      <child_frame_id>base_link</child_frame_id>
+      <max_linear_acceleration>3.0</max_linear_acceleration>
+      <max_angular_acceleration>6.0</max_angular_acceleration>
+    </plugin>
+
+    <plugin filename="gz-sim-joint-state-publisher-system"
+            name="gz::sim::systems::JointStatePublisher">
+      <topic>/joint_states</topic>
+    </plugin>
+  </gazebo>
+
+</robot>

@@ -3,9 +3,20 @@
 > A production-style ROS 2 micromouse stack where the **same flood-fill brain** drives the [mackorone/mms](https://github.com/mackorone/mms) GUI and a differential-drive robot in **Gazebo Harmonic**, cell by cell, in real time.
 
 <p align="center">
-  <img src="media/mms_solve.gif" alt="mms flood-fill solve animation" width="420"/>
+  <a href="media/micromouse_demo.mp4">
+    <video src="media/micromouse_demo.mp4" width="820" controls playsinline poster="media/mms_solved.png">
+      <em>Your browser does not support embedded video.</em>
+      <a href="media/micromouse_demo.mp4">Download the full demo (MP4)</a>
+    </video>
+  </a>
+  <br/>
+  <sub><b>Full run</b> — mms flood-fill distances, gradient walk to the center 2×2, and the Gazebo robot mirroring each cell move.</sub>
+</p>
+
+<p align="center">
+  <img src="media/mms_solve.gif" alt="mms flood-fill solve animation" width="400"/>
   &nbsp;
-  <img src="media/gazebo_path.gif" alt="Gazebo overhead path recording" width="420"/>
+  <img src="media/gazebo_path.gif" alt="Gazebo overhead path recording" width="400"/>
 </p>
 
 <p align="center">
@@ -138,6 +149,7 @@ chmod +x scripts/record_full_session.sh
 
 | Artifact | Description |
 |----------|-------------|
+| [`media/micromouse_demo.mp4`](media/micromouse_demo.mp4) | **Full demo video** — mms GUI + Gazebo solve (portfolio highlight) |
 | `media/mms_solve.gif` | Offline mms-style flood-fill animation |
 | `media/mms_solved.png` | Final distance grid + optimal path |
 | `media/brain_path.gif` | Live brain-window trail during Gazebo run |
@@ -173,7 +185,7 @@ micromouse_ws/
 │   ├── record_session_gifs.py
 │   └── headless_mms_host.py
 ├── docs/DESIGN.md
-└── media/                          # Portfolio GIFs
+└── media/                          # Demo video + portfolio GIFs
 ```
 
 ---

@@ -144,7 +144,8 @@ chmod +x scripts/record_full_session.sh
 
 | Artifact | Description |
 |----------|-------------|
-| [`media/micromouse_demo.mp4`](media/micromouse_demo.mp4) | **Full demo video** — mms GUI + Gazebo solve (portfolio highlight) |
+| [`media/micromouse_demo.gif`](media/micromouse_demo.gif) | **Full demo** — autoplays in README (mms GUI + Gazebo solve) |
+| [`media/micromouse_demo.mp4`](media/micromouse_demo.mp4) | Same run as MP4 (higher quality download) |
 | `media/mms_solve.gif` | Offline mms-style flood-fill animation |
 | `media/mms_solved.png` | Final distance grid + optimal path |
 | `media/brain_path.gif` | Live brain-window trail during Gazebo run |

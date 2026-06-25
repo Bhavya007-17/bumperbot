@@ -119,6 +119,12 @@ Click **Run**. The mms mouse and Gazebo robot advance to the center 2×2 togethe
 > **Habit:** `Ctrl+C` Terminal 1 before each new launch. Never stack two `ros2 launch` sessions.  
 > Cleanup one-liner: `pkill -9 -f cell_motion_controller; pkill -9 -f "gz sim"; pkill -9 -f brain_viz; pkill -9 -f gazebo_sync_brain`
 
+> **WSL / no-GPU note:** the Gazebo GUI may print `Failed to load plugin [] … gz_rendering_vendor`
+> and show a blank 3D viewport. That is the Ogre render engine, which needs a GPU — it is
+> **cosmetic**. The flood-fill brain, the pose-driven motion, and the synthetic overhead
+> recordings all run without it (the stack is deliberately pose-driven, not render-driven).
+> See [docs/DESIGN.md](docs/DESIGN.md#the-gazebo-3d-viewport-on-wsl--gpu-less-hosts).
+
 ---
 
 ## Demo recordings

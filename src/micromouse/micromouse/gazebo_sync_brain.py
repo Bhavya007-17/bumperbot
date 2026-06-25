@@ -28,6 +28,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import (QoSProfile, QoSDurabilityPolicy, QoSReliabilityPolicy,
+                       QoSHistoryPolicy)
 from std_msgs.msg import String, Bool
 from geometry_msgs.msg import Point
 
@@ -51,7 +53,16 @@ class Bridge(Node):
         super().__init__("gazebo_sync_brain")
         # Deep command queue: we fire the whole path without waiting.
         self.pub = self.create_publisher(String, CMD_TOPIC, 256)
-        self.cell_pub = self.create_publisher(Point, CELL_TOPIC, 10)
+        # TRANSIENT_LOCAL so a late-joining listener (the GIF recorder) replays
+        # the whole trail it missed -- the brain fires every cell in a sub-second
+        # burst, faster than a fresh subscriber can finish discovery. Depth >
+        # any path length keeps the full history.
+        cell_qos = QoSProfile(
+            depth=1024,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            reliability=QoSReliabilityPolicy.RELIABLE,
+            durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
+        self.cell_pub = self.create_publisher(Point, CELL_TOPIC, cell_qos)
         self._lock = threading.Lock()
         self._sent = 0
         self._completed = 0
@@ -61,6 +72,29 @@ class Bridge(Node):
         if msg.data:
             with self._lock:
                 self._completed += 1
+
+    def wait_for_subscribers(self, timeout: float = 10.0) -> bool:
+        """Block until DDS has matched our command/cell subscribers.
+
+        A brand-new publisher with the default RELIABLE+VOLATILE QoS drops any
+        message it sends before discovery matches a subscriber. The controller
+        and recorder are already running when the brain starts, so we just wait
+        for the match before firing the whole path -- otherwise the first burst
+        (resetToStart + every move) is silently lost and the robot never moves.
+        """
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            cmd_subs = self.pub.get_subscription_count()
+            cell_subs = self.cell_pub.get_subscription_count()
+            if cmd_subs > 0 and cell_subs > 0:
+                mms.log("[brain] subscribers matched (cmd=%d cell=%d)"
+                        % (cmd_subs, cell_subs))
+                return True
+            time.sleep(0.05)
+        mms.log("[brain] WARNING proceeding after %.0fs with cmd=%d cell=%d "
+                "subscribers" % (timeout, self.pub.get_subscription_count(),
+                                 self.cell_pub.get_subscription_count()))
+        return False
 
     def publish_cell(self, col, row):
         self.cell_pub.publish(Point(x=float(col), y=float(row), z=0.0))
@@ -113,6 +147,10 @@ def run(bridge: Bridge):
 
     cur = tuple(data["start_cell"])
     heading = C.N
+    # Wait for the controller (and recorder/brain_viz) to match our publishers
+    # before firing the path, or DDS drops the first burst and the robot never
+    # moves. See Bridge.wait_for_subscribers.
+    bridge.wait_for_subscribers()
     # Send the robot back to the start cell first, so every run begins from the
     # same place even if the previous run left it at the center.
     bridge.send("resetToStart")

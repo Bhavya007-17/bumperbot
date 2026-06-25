@@ -27,6 +27,8 @@ from PIL import Image
 
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import (QoSProfile, QoSDurabilityPolicy, QoSReliabilityPolicy,
+                       QoSHistoryPolicy)
 from geometry_msgs.msg import Point
 
 from micromouse import conventions as C
@@ -38,7 +40,14 @@ class Recorder(Node):
     def __init__(self, state):
         super().__init__("session_gif_recorder")
         self.state = state
-        self.create_subscription(Point, "/maze/current_cell", self._on_cell, 10)
+        # Match the brain's TRANSIENT_LOCAL trail publisher so we replay every
+        # cell even though we join after the sub-second burst has finished.
+        qos = QoSProfile(
+            depth=1024,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            reliability=QoSReliabilityPolicy.RELIABLE,
+            durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
+        self.create_subscription(Point, "/maze/current_cell", self._on_cell, qos)
 
     def _on_cell(self, msg: Point):
         col, row = int(round(msg.x)), int(round(msg.y))
@@ -46,6 +55,7 @@ class Recorder(Node):
             if not self.state["trail"] or self.state["trail"][-1] != (col, row):
                 self.state["trail"].append((col, row))
             self.state["cur"] = (col, row)
+            self.state["last_update"] = time.time()
 
 
 def _brain_frame(maze, dist, goals, trail, cur, vmax, cell_px=28):
@@ -145,8 +155,14 @@ def _gazebo_frame(maze, cell_m, trail, cur):
 def main(argv=None):
     p = argparse.ArgumentParser()
     p.add_argument("--spec", default=os.path.expanduser("~/.micromouse/maze_spec.json"))
-    p.add_argument("--duration", type=float, default=90.0)
-    p.add_argument("--interval", type=float, default=0.25)
+    p.add_argument("--duration", type=float, default=90.0,
+                   help="max seconds to wait for the trail to arrive")
+    p.add_argument("--settle", type=float, default=2.5,
+                   help="stop collecting this many seconds after the last cell")
+    p.add_argument("--interval", type=float, default=0.12,
+                   help="GIF frame duration in seconds")
+    p.add_argument("--hold", type=int, default=12,
+                   help="extra frames to hold on the final solved path")
     p.add_argument("--brain-gif", default="media/brain_path.gif")
     p.add_argument("--gazebo-gif", default="media/gazebo_path.gif")
     args = p.parse_args(argv)
@@ -158,34 +174,58 @@ def main(argv=None):
     cell_m = float(data["cell_size_m"])
 
     state = {"trail": [tuple(data["start_cell"])], "cur": tuple(data["start_cell"]),
-             "lock": threading.Lock()}
+             "lock": threading.Lock(), "last_update": 0.0}
 
     rclpy.init()
     node = Recorder(state)
     spin = threading.Thread(target=rclpy.spin, args=(node,), daemon=True)
     spin.start()
 
-    brain_frames, gazebo_frames = [], []
+    # --- Phase 1: COLLECT the full ordered trail -------------------------------
+    # The brain publishes the entire path in a sub-second TRANSIENT_LOCAL burst;
+    # we just wait for it to arrive and settle. Collecting before rendering keeps
+    # the rclpy executor from being starved by matplotlib (the bug that produced
+    # an empty, single-frame GIF).
+    print("collecting trail (max %.0fs, settle %.1fs)..."
+          % (args.duration, args.settle), flush=True)
     deadline = time.time() + args.duration
-    print("recording for %.0fs..." % args.duration, flush=True)
     while time.time() < deadline:
         with state["lock"]:
-            trail = list(state["trail"])
-            cur = state["cur"]
-        brain_frames.append(_brain_frame(maze, dist, goals, trail, cur, vmax))
-        gazebo_frames.append(_gazebo_frame(maze, cell_m, trail, cur))
-        time.sleep(args.interval)
+            n_cells = len(state["trail"])
+            last = state["last_update"]
+        if n_cells > 1 and last and (time.time() - last) > args.settle:
+            break
+        time.sleep(0.1)
 
+    with state["lock"]:
+        trail = list(state["trail"])
+    print("collected %d trail cells" % len(trail), flush=True)
+
+    # --- Phase 2: RENDER a progressive reveal of the collected trail -----------
+    # One frame per cell guarantees a smooth animation regardless of how fast the
+    # cells actually arrived over the network.
     os.makedirs("media", exist_ok=True)
+    brain_frames, gazebo_frames = [], []
+    for k in range(1, len(trail) + 1):
+        partial = trail[:k]
+        cur = partial[-1]
+        brain_frames.append(_brain_frame(maze, dist, goals, partial, cur, vmax))
+        gazebo_frames.append(_gazebo_frame(maze, cell_m, partial, cur))
+    # Hold on the final solved frame so the loop pauses on the answer.
+    if brain_frames:
+        brain_frames += [brain_frames[-1]] * args.hold
+        gazebo_frames += [gazebo_frames[-1]] * args.hold
+
+    dur_ms = int(args.interval * 1000)
     if brain_frames:
         brain_frames[0].save(
             args.brain_gif, save_all=True, append_images=brain_frames[1:],
-            duration=int(args.interval * 1000), loop=0)
+            duration=dur_ms, loop=0)
         print("wrote", args.brain_gif, "(%d frames)" % len(brain_frames))
     if gazebo_frames:
         gazebo_frames[0].save(
             args.gazebo_gif, save_all=True, append_images=gazebo_frames[1:],
-            duration=int(args.interval * 1000), loop=0)
+            duration=dur_ms, loop=0)
         print("wrote", args.gazebo_gif, "(%d frames)" % len(gazebo_frames))
 
     node.destroy_node()

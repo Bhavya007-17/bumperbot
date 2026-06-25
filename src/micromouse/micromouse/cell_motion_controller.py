@@ -31,6 +31,8 @@ import time
 
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import (QoSProfile, QoSDurabilityPolicy, QoSReliabilityPolicy,
+                       QoSHistoryPolicy)
 from geometry_msgs.msg import Point
 from std_msgs.msg import String, Bool
 
@@ -77,7 +79,15 @@ class CellMotionController(Node):
 
         self.svc = "/world/%s/set_pose" % self.world
         self.done_pub = self.create_publisher(Bool, "/maze/step_complete", 10)
-        self.cell_pub = self.create_publisher(Point, "/maze/current_cell", 10)
+        # Match the brain's TRANSIENT_LOCAL trail QoS so all publishers of this
+        # topic agree and late subscribers (the GIF recorder) get the start cell.
+        cell_qos = QoSProfile(
+            depth=1024,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            reliability=QoSReliabilityPolicy.RELIABLE,
+            durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
+        self.cell_pub = self.create_publisher(Point, "/maze/current_cell",
+                                              cell_qos)
         # Large depth: the brain dumps the whole path at once and the callback
         # only appends, so the middleware queue must hold a burst until drained.
         self.create_subscription(String, "/maze/mms_command", self._on_cmd, 256)
